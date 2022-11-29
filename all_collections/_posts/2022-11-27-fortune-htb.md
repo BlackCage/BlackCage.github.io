@@ -2,7 +2,7 @@
 layout: post
 title: Fortune
 date: 2022-11-15
-categories: ["HTB"]
+categories: ["HTB", "Certificates", "NFS"]
 thumbnail: "assets/images/Fortune.png"
 ---
 
