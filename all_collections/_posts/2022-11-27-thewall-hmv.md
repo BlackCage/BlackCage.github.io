@@ -1,7 +1,7 @@
 ---
 layout: post
 title: TheWall
-date: 2022-11-27
+date: 2022-11-26
 categories: ["HMV"]
 thumbnail: "assets/images/TheWall.png"
 ---
