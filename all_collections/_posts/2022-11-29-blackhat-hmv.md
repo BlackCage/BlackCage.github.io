@@ -18,7 +18,9 @@ No vemos nada interesante, sigamos investigando.
 ### Shell
 Como no hemos visto nada interesante vamos a hacer `fuzzing`, en mi caso utilizaré `WFuzz`, una herramienta en `Python`. Antes de eso me fijé que utilizaba `PHP`, por lo que en vez de buscar directorios busqué por archivos `PHP`.
 
-- `wfuzz -u "192.168.1.118/FUZZ.php" -w directory-list-2.3-medium.txt`
+```
+wfuzz -u "192.168.1.118/FUZZ.php" -w directory-list-2.3-medium.txt --hc 404
+```
 
 Tras unos minutos de espera veremos un archivo `PHP` con el nombre de `phpinfo.php`. Dicho fichero contiene la información de `PHP` representada, por lo que es bastante útil a la hora de descubrir cosas.
 
