@@ -2,7 +2,7 @@
 layout: post
 title: Sniper
 date: 2022-11-23
-categories: ["HTB"]
+categories: ["HTB", "LFI", "RFI", "CHM"]
 thumbnail: "assets/images/Sniper.png"
 ---
 
