@@ -2,7 +2,7 @@
 layout: post
 title: Jabita
 date: 2022-11-27
-categories: ["HMV"]
+categories: ["HMV", "Enumeration"]
 thumbnail: "assets/images/Jabita.png"
 ---
 
