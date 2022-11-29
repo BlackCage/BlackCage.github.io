@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Sniper
-date: 2022-11-29
+date: 2022-11-23
 categories: ["HTB"]
 thumbnail: "assets/images/Sniper.png"
 ---
