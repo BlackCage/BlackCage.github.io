@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Fortune
-date: 2022-11-16
+date: 2022-11-15
 categories: ["HTB"]
 thumbnail: "assets/images/Fortune.png"
 ---
