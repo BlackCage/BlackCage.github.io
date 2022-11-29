@@ -2,7 +2,7 @@
 layout: post
 title: CrazyMed
 date: 2022-11-25
-categories: ["HMV"]
+categories: ["HMV", "MemCached", "Path Hijacking"]
 thumbnail: "assets/images/CrazyMed.png"
 ---
 
