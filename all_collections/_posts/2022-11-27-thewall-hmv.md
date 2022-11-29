@@ -22,7 +22,9 @@ Si miramos la página veremos que sólo pone un `Hello World!` en grande, por lo
 
 Con esto aprendido podemos hacer `fuzzing` por archivos `PHP`, aunque si nos fijamos veremos que la página tiene un `WAF` (`Web Application Firewall`), por lo que si vamos muy rápido nos dará el mismo mensaje siempre (`Forbidden`). Para el siguiente paso utilizaré `GoBuster`, una herramienta creada en `GoLang` para hacer `fuzzing`.
 
-- `gobuster dir -u "http://192.168.1.114" -w directory-list-2.3-medium.txt -x php - -delay 1s -t 1 --b 403,404`
+```
+gobuster dir -u "http://192.168.1.114" -w directory-list-2.3-medium.txt -x php - -delay 1s -t 1 --b 403,404
+```
 
 ```
 /index.php (Status: 200 ) [Size: 25 ]
@@ -31,7 +33,9 @@ Con esto aprendido podemos hacer `fuzzing` por archivos `PHP`, aunque si nos fij
 
 Tras esperar un buen rato vemos dos archivos, el respectivo `index.php` e `includes.php`, si abrimos dicho archivo veremos una página en blanco, podemos intuir (por el nombre) que dispondrá de algún parámetro que apuntará a un archivo local, por lo que podemos tratar de `fuzzear` ese parámetro. Para ello utilizaré `WFuzz`:
 
-- `wfuzz -u "http://192.168.1.114/includes.php?FUZZ=/etc/passwd" -w directory-list-2.3-medium.txt --hc=404 --hh=2 -t 200`
+```
+wfuzz -u "http://192.168.1.114/includes.php?FUZZ=/etc/passwd" -w directory-list-2.3-medium.txt --hc=404 --hh=2 -t 200
+```
 
 ```
 000217299: 200 28 L 41 W 1460 Ch "display_page"
@@ -75,7 +79,9 @@ Vemos que puedo ejecutar como `John` una herramienta llamada `ExifTool`. Si nos 
 
 Con esto hecho seguí las instrucciones de [`GTFObins`](https://gtfobins.github.io/gtfobins/exiftool/#sudo), quedándome así la instrucción:
 
-- `sudo -u john /usr/bin/exiftool -filename=/home/john/.ssh/authorized_keys /tmp/id_rsa.pub`
+```
+sudo -u john /usr/bin/exiftool -filename=/home/john/.ssh/authorized_keys /tmp/id_rsa.pub
+```
 
 Esto ha hecho que copiemos nuestra `id_rsa` pública en un archivo llamado `authorized_keys`, el
 cual al estar ahí nuestra llave podemos conectarnos como `John` sin proporcionar contraseña.
