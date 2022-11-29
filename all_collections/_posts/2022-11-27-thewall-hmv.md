@@ -2,7 +2,7 @@
 layout: post
 title: TheWall
 date: 2022-11-26
-categories: ["HMV"]
+categories: ["HMV", "Enumeration", "Log Poisoning"]
 thumbnail: "assets/images/TheWall.png"
 ---
 
