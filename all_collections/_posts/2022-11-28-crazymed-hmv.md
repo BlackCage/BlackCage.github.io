@@ -1,7 +1,7 @@
 ---
 layout: post
 title: CrazyMed
-date: 2022-11-28
+date: 2022-11-25
 categories: ["HMV"]
 thumbnail: "assets/images/CrazyMed.png"
 ---
