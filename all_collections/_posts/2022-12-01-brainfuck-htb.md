@@ -67,7 +67,7 @@ Una vez hayamos entrado en ese foro veremos tres canales: `Key`, `SSH Access` y 
 
 Bien, después de leer la conversación nos vamos a `Key`, en el que vemos letras sin sentido, vamos a tratar de desencriptar los mensajes.
 
-Si nos fijamos bien veremos que en todos los mensajes de `Orestis` termina con `Orestis - Hacking for fun and profit`, por lo que `Pieagnm - Jkoijeg nbw zwx mle grwsnn` será la equivalencia. Bien! Ya tenemos una parte resuelta, gracias a esto ya podemos desencriptar lo demás, vamos allá:
+Si nos fijamos bien veremos que en todos los mensajes de `Orestis` terminan con `Orestis - Hacking for fun and profit`, por lo que `Pieagnm - Jkoijeg nbw zwx mle grwsnn` será la equivalencia. Bien! Ya tenemos una parte resuelta, gracias a esto ya podemos desencriptar lo demás, vamos allá:
 
 Tras varios minutos de búsqueda intensa llegué a `Vigenere Cipher`, un tipo de cifrado. Para poder obtener algo de información me dirigí a [`DCode`](https://www.dcode.fr/vigenere-cipher) el cual tiene muchas herramientas de desencriptación, así que pegué la equivalencia y el texto original (sin espacios) en `Knowing the Key/Password`. Tras unos segundos de espera veremos un resultado:
 
