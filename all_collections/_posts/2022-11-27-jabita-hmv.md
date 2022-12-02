@@ -17,7 +17,10 @@ No vemos nada interesante, sigamos investigando.
 
 ### Shell
 Una vez entramos en la página vemos un texto sin relevancia, como no vemos ningún hipervínculo ni comentarios en el código de la página pazaremos a `fuzzear` la página, para ello utilizaremos `WFuzz`, una herramienta hecha en `Python` que nos ayudará en la búsqueda de directorios.
-- `wfuzz -u "http://192.168.1.115/FUZZ" -w directory-list-2.3-medium.txt --hc 404`
+
+```
+wfuzz -u "http://192.168.1.115/FUZZ" -w directory-list-2.3-medium.txt --hc 404
+```
 
 Tras esperar unos segundos veremos un resultado, `building`. Si inspeccionamos la página veremos que ahora sí hay algo más, arriba vemos tres hipervínculos, los cuales tienen un parámetro que nos llama la atención, `page=`, vamos a ver si es vulnerable a `LFI`.
 
