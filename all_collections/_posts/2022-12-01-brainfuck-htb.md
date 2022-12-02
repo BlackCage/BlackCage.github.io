@@ -77,7 +77,7 @@ Brainfu - Ckmybra inf uck myb rainfu
 
 Como podemos leer pone `brainfuckmybrain fuckmybrain fuck`, podemos intuir que uno de estos tres resultados es la llave para desencriptar lo demás, en este caso es `fuckmybrain` (es ir probando hasta que algo tenga sentido). Bien! Ya podemos desencriptar todo!
 
-Si leemos la conevrsación veremos que `admin` nos da una `URL` con la `id_rsa` de `orestis`, pero la llave no está. Por último `orestis` dice que utilizará la fuerza bruta, por lo que ya sabes qué hacer.
+Si leemos la conversación veremos que `admin` nos da una `URL` con la `id_rsa` de `orestis`, pero la llave no está. Por último `orestis` dice que utilizará la fuerza bruta, por lo que ya sabes qué hacer.
 
 Una vez nos hayamos descargado el archivo podemos utilizar `ssh2john` para obtener el `hash` y de ahí con `John` hacer fuerza bruta para obtener la contraseña. Veámoslo:
 
@@ -104,6 +104,6 @@ Fantástico! Ya podemos entrar por `SSH` utilizando la `id_rsa` y la contraseña
 ### Subida de privilegios
 Una vez estemos dentro de la máquina podemos comenzar con enumeración básica, por lo que hice `uname -a` y me fijé que la versión era `4.4`, por lo que busqué vulnerabilidades para esa versión.
 
-En [`Exploit-DB`](https://www.exploit-db.com/exploits/44298) hay un `PoC` (`Prove of Concept`), dándonos así un exploit en `C`, nos lo descargamos, lo pasamos a la máquina víctima y com `GCC` (el cual está instalado) lo compilamos. Nos dejará un archivo con el nombre `a.out`. Cuando lo ejecutemos (`./a.out`) nos dejará con una Shell como `root`.
+En [`Exploit-DB`](https://www.exploit-db.com/exploits/44298) hay un `PoC` (`Prove of Concept`), dándonos así un exploit en `C`, nos lo descargamos, lo pasamos a la máquina víctima y con `GCC` (el cual está instalado) lo compilamos. Nos dejará un archivo con el nombre `a.out`. Cuando lo ejecutemos (`./a.out`) nos dejará con una Shell como `root`.
 
 Enhorabuena! Estamos como `root` de una manera muy fácil!
