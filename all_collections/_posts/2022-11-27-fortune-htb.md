@@ -144,7 +144,9 @@ Como verás he dejado campos en blanco ya que, como ya dije, no es obligatorio p
 
 Para el siguiente paso usaré [`x509`](https://www.openssl.org/docs/man1.1.1/man1/x509.html) para crear el certificado cliente firmado. Usaremos el archivo `csr` creado en el paso anterior, el certificado `CA` y la `llave CA`. Crearemos una nueva serie con el parámetro `-CAcreateserial`, también y como en los comandos anteriores especificaremos el `output` dándole una extensión `PEM`. El parámetro `-days` es para especificar en cuántos días caducará el certificado, no hace falta poner tantos días, podemos poner 365.
 
-- `openssl x509 -req -in black.csr -CA intermediate.cert.pem -CAkey intermediate.key.pem -CAcreateserial -out black.pem -days 1024`
+```
+openssl x509 -req -in black.csr -CA intermediate.cert.pem -CAkey intermediate.key.pem -CAcreateserial -out black.pem -days 1024
+```
 
 ```
 Signature ok
@@ -154,7 +156,9 @@ Getting CA Private Key
 
 Finalmente usaremos [`pkcs12`](https://www.openssl.org/docs/man1.1.1/man1/openssl-pkcs12.html) para combinar mi nueva llave y `certificado cliente` en un archivo `PFX`, el cual es un formato el cual `FireFox` puede importar. Con el parámetro `-certfile` vamos a especificar el archivo de certificación, en este caso `intermediate.cert.pem`.
 
-- `openssl pkcs12 -export -out black.pfx -inkey black.key -in black.pem -certfile intermediate.cert.pem`
+```
+openssl pkcs12 -export -out black.pfx -inkey black.key -in black.pem -certfile intermediate.cert.pem
+```
 
 ```
 Enter Export Password:
