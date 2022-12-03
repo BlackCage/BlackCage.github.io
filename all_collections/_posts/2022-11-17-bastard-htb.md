@@ -130,7 +130,7 @@ Bien! Ya estamos dentro de la máquina como `IUSR`!
 
 ### Subida de privilegios
 
-Estupendo, ya estamos en la máquina, pero queremos ser administradores, así que comencé por enumerar el sistema con systeminfo y me fijé que era `Windows Server 2008`, por lo que estaba bastante desactualizado.
+Estupendo, ya estamos en la máquina, pero queremos ser administradores, así que comencé por enumerar el sistema con `systeminfo` y me fijé que era `Windows Server 2008`, por lo que estaba bastante desactualizado.
 
 Tras hacer una pequeña búsqueda encontré que era vulnerable a `EternalBlue`, así que para explotarlo me descargué un ZIP del repositorio [`Windows Kernel Exploit`](https://github.com/SecWiki/windows-kernel-exploits/tree/master/MS15-051), el cual contenía un archivo `EXE` llamado `ms15-051x64.exe`.
 
