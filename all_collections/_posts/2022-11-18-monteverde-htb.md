@@ -12,7 +12,7 @@ thumbnail: "assets/images/MonteVerde.png"
 
 #### Descubrimiento de puertos y reconocimiento básico
 - `nmap -sS --min-rate 5000 10.10.10.172 -oG allPorts`
-- `nmap -sCV -p53,88,135,139,389,445,[...],5985,[...] 10.10.10.172 -oN targeted`
+- `nmap -sCV -p[...],139,389,445,[...],5985,[...] 10.10.10.172 -oN targeted`
 
 Vemos que está el puerto `5985` abierto, pertenece a `WinRM`, pero no tenemos credenciales.
 
