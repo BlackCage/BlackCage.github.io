@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Art
+title: System
 date: 2022-12-03
 categories: ["HMV", "XXE", "File Edit"]
 thumbnail: "assets/images/System.png"
