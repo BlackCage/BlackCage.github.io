@@ -106,7 +106,7 @@ mirar en el directorio `/home/`, viendo así que hay tres usuarios: `bob`, `char
 Nos metemos en el directorio personal de `bob` para encontrarnos que dispone de dos
 carpetas, `ca` y `dba`, nos meteremos en la primera y veremos más subcarpetas, una de
 ellas se llama `intermediate` y dispone de dos (más, pero no nos importan) carpetas
-llamadas `certs` y `private`, en la primera carpeta nos encontramos con tres archivos, `ca-chain.cert.pem`, `fortune.htb.cert.pem` y `intermediate.cert.pem`. De aquí nos quedaremos con el último archivo. Pasemos ahora a la segunda carpeta, donde vemos dos archivos más, `fortune.htb.key.pem` e `intermediate.key.pem`, al igual que la otra vez nos quedaremos con el último fichero.
+llamadas `certs` y `private`, en la primera carpeta nos encontramos con tres archivos, `ca-chain.cert.pem`, `fortune.htb.cert.pem` e `intermediate.cert.pem`. De aquí nos quedaremos con el último archivo. Pasemos ahora a la segunda carpeta, donde vemos dos archivos más, `fortune.htb.key.pem` e `intermediate.key.pem`, al igual que la otra vez nos quedaremos con el último fichero.
 
 
 Usaremos el certificado `CA` y la llave para crear una `certificación cliente`, aunque
