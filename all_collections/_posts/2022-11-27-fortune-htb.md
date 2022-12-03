@@ -140,7 +140,7 @@ to be sent with your certificate request
 A challenge password []:
 An optional company name []:
 ```
-Como verás he dejado campos en blanco ya que, como ya dije, no es obligatorio ponerlos, le podemos dar al enter y funcionará igual.
+Como verás he dejado campos en blanco ya que, como ya dije, no es obligatorio ponerlos, le podemos dar al `enter` y funcionará igual.
 
 Para el siguiente paso usaré [`x509`](https://www.openssl.org/docs/man1.1.1/man1/x509.html) para crear el certificado cliente firmado. Usaremos el archivo `csr` creado en el paso anterior, el certificado `CA` y la `llave CA`. Crearemos una nueva serie con el parámetro `-CAcreateserial`, también y como en los comandos anteriores especificaremos el `output` dándole una extensión `PEM`. El parámetro `-days` es para especificar en cuántos días caducará el certificado, no hace falta poner tantos días, podemos poner 365.
 
