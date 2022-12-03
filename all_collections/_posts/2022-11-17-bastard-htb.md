@@ -11,8 +11,8 @@ thumbnail: "assets/images/Bastard.png"
 ### Reconocimiento
 
 #### Descubrimiento de puertos y reconocimiento básico
-nmap -sS --min-rate 5000 10.10.10.9 -oG allPorts
-nmap -sCV -p80,135 10.10.10.9 -oN targeted
+- `nmap -sS --min-rate 5000 10.10.10.9 -oG allPorts`
+- `nmap -sCV -p80,135 10.10.10.9 -oN targeted`
 
 `NMAP` nos dice la versión de `Drupal`, en este caso `7`.
 
