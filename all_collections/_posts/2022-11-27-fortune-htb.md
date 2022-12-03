@@ -51,7 +51,7 @@ Como vemos tenemos ejecución remota de comandos. Traté de entablar una Reverse
 de muchas maneras, jugando con Base64, clásicas e incluso intentando descargarme
 archivos de mi máquina, pero ningún método funcionó.
 
-Para tener una Shell y que sea algo más cómodo que mandar con CURL las peticiones
+Para tener una Shell y que sea algo más cómodo que mandar con `CURL` las peticiones
 hice un script que simulaba una Shell:
 
 ```
