@@ -52,7 +52,7 @@ de muchas maneras, jugando con Base64, clásicas e incluso intentando descargarm
 archivos de mi máquina, pero ningún método funcionó.
 
 Para tener una Shell y que sea algo más cómodo que mandar con `CURL` las peticiones
-hice un script que simulaba una Shell:
+hice un `script` que simulaba una Shell:
 
 ```
 #!/usr/bin/python
