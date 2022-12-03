@@ -44,7 +44,9 @@ Bien! Vemos que obtenemos una conexión! Vamos a desplegar información con el c
 
 Vamos a copiar todos los nombres de usuario en un archivo, en mi caso llamado `users`. Una vez tenemos el archivo podemos utilizar `CrackMapEXEC` para hacer fuerza bruta. Como sólo tenemos los nombres de usuario y queremos probar algo rápido antes que algo exhaustivo vamos a probar utilizando el nombre de usuario como contraseña.
 
-- `crackmapexec smb 10.10.10.172 -u users -p users --continue-on-success`
+```
+crackmapexec smb 10.10.10.172 -u users -p users --continue-on-success
+```
 
 ```
 [...]
