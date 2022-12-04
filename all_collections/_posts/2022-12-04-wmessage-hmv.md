@@ -39,7 +39,7 @@ Bien! Ya estamos en la máquina como `www-data`!
 ### Subida de privilegios #1
 Una vez dentro de la máquina ejecuté `sudo -l` para listar todo lo que podía hacer:
 
-```Ruby
+```
 Matching Defaults entries for www-data on MSG:
     env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
  
@@ -56,7 +56,7 @@ Bien! Ya estamos como `messagemaster`!
 ### Subida de privilegios #2
 Ahora nuestro objetivo es obtener `root`, por lo que volvemos a ejecutar `sudo -l` para saber qué podemos hacer en la máquina:
 
-```Ruby
+```
 Matching Defaults entries for messagemaster on MSG:
     env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
  
@@ -76,7 +76,7 @@ Tras buscar un rato en la máquina llegué a `/var/www`, donde se encontraba un 
 
 Bien! Ya tenemos el `hash`, podemos tratar de romperlo con `John` pero no funcionará. Me creé un `script` en `Python` para que con un diccionario (`rockyou.txt`) vaya línea por línea transformándola en `MD5` y comparándola con el `hash` que tenemos. Vamos a verlo:
 
-```Python
+```
 import hashlib
 
 md5 = "85c73111b30f9ede8504bb4a4b682f48"
