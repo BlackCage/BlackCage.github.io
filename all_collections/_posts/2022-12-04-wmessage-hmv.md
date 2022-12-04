@@ -6,7 +6,7 @@ categories: ["HMV", "RCE"]
 thumbnail: "assets/images/WMessage.png"
 ---
 
-# VMessage [ Hack My VM ]
+# WMessage [ Hack My VM ]
 
 ### Reconocimiento
 ##### Descubrimiento de puertos y reconocimiento básico
