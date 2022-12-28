@@ -266,7 +266,7 @@ process version
 role
 ```
 
-- `sqlite> SELCT * FROM server;`
+- `sqlite> SELECT * FROM server;`
 
 ```
 [...]|utUU0jkamCZDmqFLOrAuPjFxL0zp8zWzISe5MF0GY/l8Silrmu3caqrtjaVjLQlvFFEgESGz|[...]
